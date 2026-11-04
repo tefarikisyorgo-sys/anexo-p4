@@ -7,7 +7,6 @@ Página web estática (una sola página) con el detalle de la Pregunta 4 del des
 index.html              página única con 7 secciones (menú de anclas)
 assets/css/style.css    estilos
 assets/js/app.js        lee data/*.json y dibuja mapas, matrices, tablas y gráficos
-assets/img/             mapas en PNG (respaldo, iguales a las figuras del informe)
 data/                   10 JSON agregados (fuente única de los números)
 scripts/                fase7_p4_mapa.R (análisis), build_data.py (CSV → JSON), o2check.R (chequeo aparte)
 ```
@@ -21,6 +20,8 @@ Para verla en el computador hay que usar un servidor local (por ejemplo `python 
 1. Crear un repositorio público (por ejemplo `anexo-p4`) y subir **el contenido** de esta carpeta a la raíz (que `index.html` quede en la raíz del repo).
 2. En el repositorio: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` / `(root)` → Save**.
 3. A los 1–2 minutos queda en `https://<usuario>.github.io/anexo-p4/`.
+
+Versión publicada: https://tefarikisyorgo-sys.github.io/anexo-p4/
 
 ## Regenerar los datos
 1. En R, con `df_markov` cargado: `source("scripts/fase7_p4_mapa.R")` y exportar los objetos `p4_*` a CSV.
