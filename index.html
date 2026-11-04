@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anexo P4 · Customer journey Falabella</title>
+<meta name="description" content="Anexo interactivo de la Pregunta 4: estados del customer journey y probabilidades de transición (julio 2026).">
+<link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#resumen">Anexo P4 <span>Customer journey · julio 2026</span></a>
+    <nav class="menu" aria-label="Secciones">
+      <a href="#resumen">Resumen</a>
+      <a href="#mapas">Mapas</a>
+      <a href="#matrices">Matrices</a>
+      <a href="#transiciones">Transiciones clave</a>
+      <a href="#visitas">Visitas y rutas</a>
+      <a href="#procedencia">Procedencia</a>
+      <a href="#validaciones">Validaciones</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="estado-carga" class="aviso">Cargando datos…</div>
+
+  <section id="resumen">
+    <h1>¿Por qué estados transita el cliente y con qué probabilidad se mueve?</h1>
+    <p class="lead">Anexo de la Pregunta 4 del desafío Falabella. Muestra el detalle estadístico de las cadenas de Markov de orden 1 (con autotransiciones) para <b>compradores</b> y <b>no compradores</b>.</p>
+    <div id="kpis" class="kpis"></div>
+    <p class="conclusion"><b>Por ende,</b> el recorrido gira alrededor de la ficha de Producto. Las diferencias entre grupos aparecen en la puerta de entrada y en la probabilidad de avanzar al carro o de terminar la visita.</p>
+    <details class="caja">
+      <summary>Cómo leer los números (definiciones y denominadores)</summary>
+      <div id="definiciones"></div>
+    </details>
+    <details class="caja">
+      <summary>Uso de cada estado</summary>
+      <div id="uso"></div>
+    </details>
+  </section>
+
+  <section id="mapas">
+    <h2>Mapas del customer journey</h2>
+    <ul class="notas">
+      <li>Dentro de cada estado: <b>se queda</b> (% de clics que siguen en el mismo estado, por clic) y <b>abandona</b> (% de las salidas que terminan la visita, por salida).</li>
+      <li>Flechas: % de las salidas del estado de origen (por salida). Las flechas que parten de <b>Inicio</b> son % de visitas.</li>
+      <li id="nota-umbral"></li>
+    </ul>
+    <div class="tabs" role="tablist" data-target="mapa">
+      <button role="tab" class="on" data-v="compradores">Compradores</button>
+      <button role="tab" data-v="no_compradores">No compradores</button>
+    </div>
+    <div class="scroll"><div id="mapa" class="mapa"></div></div>
+    <p class="fuente">Fuente: matrices.json (p4_P) y diagrama_config.json.</p>
+  </section>
+
+  <section id="matrices">
+    <h2>Matrices completas de transición</h2>
+    <ul class="notas">
+      <li><b>Por clic:</b> de todos los clics en el estado de la fila, % que va a cada destino; incluye quedarse en el mismo estado (diagonal).</li>
+      <li><b>Por salida:</b> excluye la diagonal; solo cuenta los movimientos hacia otro estado. La diagonal se muestra como «—».</li>
+      <li><b>Fila Inicio:</b> cada visita sale una vez de Inicio, así que sus valores son % de visitas que comienzan en cada estado.</li>
+    </ul>
+    <div class="controles">
+      <div class="tabs" data-target="matriz-grupo">
+        <button class="on" data-v="compradores">Compradores</button>
+        <button data-v="no_compradores">No compradores</button>
+      </div>
+      <div class="tabs" data-target="matriz-medida">
+        <button data-v="por_clic">Por clic</button>
+        <button class="on" data-v="por_salida">Por salida</button>
+      </div>
+    </div>
+    <div id="leyenda-matriz" class="leyenda"></div>
+    <div class="scroll"><table id="matriz" class="tabla matriz"></table></div>
+    <div id="detalle-celda" class="detalle">Toca o pasa el cursor sobre una celda para ver su conteo (n), el porcentaje y su intervalo del 95%.</div>
+    <p class="fuente">Fuente: matrices.json (p4_P). IC 95% por bootstrap por cliente (500 réplicas).</p>
+  </section>
+
+  <section id="transiciones">
+    <h2>Transiciones clave</h2>
+    <ul class="notas">
+      <li>Todas son <b>por salida</b>, salvo Producto → Producto («se queda»), que es <b>por clic</b>.</li>
+      <li><b>S1–S4</b> = mínimo y máximo de las semanas normales. <b>S5</b> (29–31 de julio, incluye los días 30 y 31) va aparte.</li>
+      <li>El valor de julio incluye S5, por eso puede quedar fuera del rango S1–S4 (ocurre en no compradores, Portada → Búsqueda).</li>
+      <li><b>Peso igual:</b> cada cliente pesa lo mismo, sin importar cuánto navega (M.4).</li>
+    </ul>
+    <div class="tabs" data-target="trans">
+      <button class="on" data-v="compradores">Compradores</button>
+      <button data-v="no_compradores">No compradores</button>
+    </div>
+    <div class="scroll"><table id="tabla-trans" class="tabla"></table></div>
+    <button id="ver-todas" class="boton">Ver todas las transiciones</button>
+    <p class="fuente">Fuente: transiciones_clave.json (p4_clave).</p>
+  </section>
+
+  <section id="visitas">
+    <h2>Visitas y rutas</h2>
+    <h3>¿Hasta dónde llega cada visita?</h3>
+    <p class="nota-corta">Etapa más profunda alcanzada por cada visita, en <b>% de visitas</b> (no es una probabilidad de transición). «Rebote» = visita de un solo clic.</p>
+    <div id="profundidad"></div>
+    <p class="fuente" id="nota-rebote"></p>
+    <h3>Rutas más frecuentes</h3>
+    <p class="nota-corta">Ruta = secuencia de estados de una visita, juntando las repeticiones seguidas. % sobre las visitas del grupo.</p>
+    <div class="tabs" data-target="rutas">
+      <button class="on" data-v="compradores">Compradores</button>
+      <button data-v="no_compradores">No compradores</button>
+    </div>
+    <div id="rutas-resumen" class="mini-kpis"></div>
+    <div class="scroll"><table id="tabla-rutas" class="tabla"></table></div>
+    <details class="caja">
+      <summary>Rutas que terminan en compra (compradores, top 8)</summary>
+      <div class="scroll"><table id="tabla-rutas-compra" class="tabla"></table></div>
+    </details>
+    <p class="fuente">Fuente: profundidad.json (p4_profundidad) y rutas.json (p4_rutas, p4_rutas_compra, p4_rutas_resumen).</p>
+  </section>
+
+  <section id="procedencia">
+    <h2>Salida de Producto según el estado de procedencia (análisis complementario por cambio de estado)</h2>
+    <div id="advertencia-proc" class="advertencia"></div>
+    <p class="nota-corta">Valores en <b>% de las salidas de Producto</b>: cada fila suma 100%.</p>
+    <div class="tabs" data-target="proc">
+      <button class="on" data-v="compradores">Compradores</button>
+      <button data-v="no_compradores">No compradores</button>
+    </div>
+    <div class="scroll"><table id="tabla-proc" class="tabla"></table></div>
+    <details class="caja">
+      <summary>Procedencias menos frecuentes</summary>
+      <div class="scroll"><table id="tabla-proc-resto" class="tabla"></table></div>
+    </details>
+    <p class="fuente">Fuente: procedencia_producto.json (p4_memoria).</p>
+  </section>
+
+  <section id="validaciones">
+    <h2>Validaciones y actividad diaria</h2>
+    <p class="nota-corta">Resultados transcritos del informe (sección M); esta página no los recalcula.</p>
+    <div id="lista-val"></div>
+    <h3>Actividad diaria</h3>
+    <p class="nota-corta">Los días 30 (jueves) y 31 (viernes) de julio son <b>días de actividad excepcional</b>. Los datos no confirman la causa: un evento promocional («Cyber») o el fin de mes son hipótesis.</p>
+    <div id="dias"></div>
+    <div id="evento" class="mini-kpis"></div>
+    <p class="fuente">Fuente: validaciones.json (informe, sección M) y dias.json (p4_dias, p4_evento).</p>
+  </section>
+
+  <section id="reglas">
+    <h2>Reglas de interpretación</h2>
+    <ul id="reglas-lista" class="notas"></ul>
+  </section>
+</main>
+<footer class="pie"><div class="wrap">Tesis de magíster · Desafío 2: Customer journey Falabella · Solo datos agregados.</div></footer>
+<script src="./assets/js/app.js"></script>
+</body>
+</html>
