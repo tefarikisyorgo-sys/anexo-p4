@@ -43,15 +43,17 @@
 
   <section id="mapas">
     <h2>Mapas del customer journey</h2>
-    <ul class="notas">
-      <li>Dentro de cada estado: <b>se queda</b> (% de clics que siguen en el mismo estado, por clic) y <b>abandona</b> (% de las salidas que terminan la visita, por salida).</li>
-      <li>Flechas: % de las salidas del estado de origen (por salida). Las flechas que parten de <b>Inicio</b> son % de visitas.</li>
-      <li id="nota-umbral"></li>
-    </ul>
-    <div class="tabs" role="tablist" data-target="mapa">
-      <button role="tab" class="on" data-v="compradores">Compradores</button>
-      <button role="tab" data-v="no_compradores">No compradores</button>
+    <div class="controles">
+      <div class="tabs" role="tablist" data-target="mapa">
+        <button role="tab" class="on" data-v="compradores">Compradores</button>
+        <button role="tab" data-v="no_compradores">No compradores</button>
+      </div>
+      <div class="tabs" role="tablist" data-target="mapa-modo">
+        <button role="tab" class="on" data-v="clic">Con autotransiciones · por clic (principal)</button>
+        <button role="tab" data-v="salida">Sin autotransiciones · por salida (complemento)</button>
+      </div>
     </div>
+    <ul class="notas" id="notas-mapa"></ul>
     <div class="scroll"><div id="mapa" class="mapa"></div></div>
     <p class="fuente">Fuente: matrices.json (p4_P) y diagrama_config.json.</p>
   </section>
@@ -69,8 +71,8 @@
         <button data-v="no_compradores">No compradores</button>
       </div>
       <div class="tabs" data-target="matriz-medida">
-        <button data-v="por_clic">Por clic</button>
-        <button class="on" data-v="por_salida">Por salida</button>
+        <button class="on" data-v="por_clic">Por clic</button>
+        <button data-v="por_salida">Por salida</button>
       </div>
     </div>
     <div id="leyenda-matriz" class="leyenda"></div>
