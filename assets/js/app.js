@@ -1,3 +1,88 @@
+// svgMapaP4(cad, modo, M, POS, opt): dibuja el mapa del customer journey como SVG.
+// modo 'clic'  = matriz con autotransiciones (principal): flechas y bucles por clic.
+// modo 'salida' = sin autotransiciones (complemento): flechas y abandono por salida, sin bucles.
+window.svgMapaP4 = function (cad, modo, M, POS, opt) {
+  opt = opt || {};
+  const U = modo === 'clic' ? (opt.umbralClic || 5) : (opt.umbralSalida || 10);
+  const NOM = {INICIO: 'Inicio', PORTADA: 'Portada', BUSQUEDA: 'Búsqueda', LISTADO: 'Listado', PRODUCTO: 'Producto', AGREGAR_CARRO: 'Agregar al carro', CARRITO: 'Carrito', CHECKOUT: 'Checkout', CUENTA_SERVICIOS: 'Cuenta y servicios', OTROS: 'Otros', COMPRA: 'Compra', ABANDONO: 'Abandono'};
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const RAD = {'INICIO>PRODUCTO': .28, 'INICIO>LISTADO': .05, 'OTROS>CARRITO': -.30, 'OTROS>PRODUCTO': 0, 'PORTADA>CARRITO': -.20, 'CUENTA_SERVICIOS>PRODUCTO': 0, 'OTROS>BUSQUEDA': -.08, 'INICIO>PORTADA': 0, 'CHECKOUT>COMPRA': 0, 'CHECKOUT>PRODUCTO': .30, 'CARRITO>LISTADO': -.15, 'CARRITO>PORTADA': .2, 'CARRITO>BUSQUEDA': -.06};
+  const TL = {'INICIO>PRODUCTO': .38, 'PORTADA>CARRITO': .80, 'OTROS>CARRITO': .5, 'OTROS>PRODUCTO': .33, 'CUENTA_SERVICIOS>PRODUCTO': .42, 'OTROS>PORTADA': .45, 'CUENTA_SERVICIOS>PORTADA': .5, 'PORTADA>LISTADO': .42, 'AGREGAR_CARRO>CARRITO': .33, 'INICIO>LISTADO': .33, 'CARRITO>LISTADO': .45, 'CARRITO>BUSQUEDA': .2, 'CARRITO>PORTADA': .4};
+  const OFF = {'CARRITO>CHECKOUT': [0, -.42], 'CHECKOUT>CARRITO': [0, .42], 'CHECKOUT>COMPRA': [0, .38], 'INICIO>PORTADA': [0, .36]};
+  // dónde va el bucle de autotransición: punto del borde (dx, lado) y dirección hacia afuera
+  const LOOP = {PRODUCTO: [.85, -1], CHECKOUT: [.85, -1], LISTADO: [-.85, -1], BUSQUEDA: [-.85, 1], CUENTA_SERVICIOS: [-.85, 1], OTROS: [.85, 1], AGREGAR_CARRO: [.85, 1], PORTADA: [-.85, 1], CARRITO: [.85, -1]};
+  const PER = ['CUENTA_SERVICIOS', 'OTROS'], W = 2.8, H = 1.2, X0 = -1.6, X1 = 25.1, s = 90, tit = !!opt.titulo;
+  const Y1 = tit ? 9.4 : 9.1, Y0 = tit ? -0.75 : -0.6;
+  const px = (x, y) => [(x - X0) * s, (Y1 - y) * s];
+  const cel = (d, h) => M.find(z => z.desde === d && z.hasta === h);
+  const val = x => modo === 'clic' ? x.por_clic : x.por_salida;
+  const inBox = (p, q) => Math.abs(p[0] - q[0]) <= W / 2 + .05 && Math.abs(p[1] - q[1]) <= H / 2 + .05;
+  const bez = (a, b, r, t) => { const cx = (a[0] + b[0]) / 2 + r * (b[1] - a[1]), cy = (a[1] + b[1]) / 2 - r * (b[0] - a[0]);
+    return [(1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * cx + t * t * b[0], (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * cy + t * t * b[1]]; };
+  const R0 = v => { const f = Math.floor(v), d = Math.round((v - f) * 10); return d === 5 ? (f % 2 === 0 ? f : f + 1) : Math.round(v); };
+  const P2 = q => q[0].toFixed(1) + ',' + q[1].toFixed(1);
+  const head = (end, ang, lw, col) => { const hl = 13 + lw * 1.7, hw = 6.5 + lw * .85, bx = end[0] - hl * Math.cos(ang), by = end[1] - hl * Math.sin(ang);
+    return {bx, by, hl, svg: '<polygon points="' + [end, [bx + hw * Math.sin(ang), by - hw * Math.cos(ang)], [bx - hw * Math.sin(ang), by + hw * Math.cos(ang)]].map(P2).join(' ') + '" fill="' + col + '"/>'}; };
+  const etiqueta = (lx, ly, t, title) => { const tw = t.length * 13.5 + 12;
+    return '<g><title>' + esc(title) + '</title><rect x="' + (lx - tw / 2).toFixed(1) + '" y="' + (ly - 16).toFixed(1) + '" width="' + tw.toFixed(1) + '" height="32" rx="7" fill="#fff" fill-opacity=".95"/><text x="' + lx.toFixed(1) + '" y="' + (ly + 8).toFixed(1) + '" text-anchor="middle" font-size="24">' + esc(t) + '</text></g>'; };
+  const lect = modo === 'clic' ? 'por clic' : 'por salida';
+  let ar = '', lb = '', nd = '';
+  // flechas entre estados
+  for (const e of M) {
+    if (e.desde === e.hasta || e.hasta === 'ABANDONO' || !POS[e.desde] || !POS[e.hasta]) continue;
+    const v = val(e); if (v === null || v < U) continue;
+    const key = e.desde + '>' + e.hasta, r = key in RAD ? RAD[key] : .12, A = POS[e.desde], B = POS[e.hasta];
+    const col = e.hasta === 'COMPRA' ? '#2E7D32' : ((PER.includes(e.desde) || PER.includes(e.hasta)) ? '#A0A0A0' : '#37474F');
+    const lw = (.7 + v / 11) * 1.85, pts = [];
+    for (let i = 0; i <= 300; i++) { const p = bez(A, B, r, i / 300); if (!inBox(p, A) && !inBox(p, B)) pts.push(px(p[0], p[1])); }
+    if (pts.length < 2) continue;
+    const end = pts[pts.length - 1], pre = pts[Math.max(0, pts.length - 6)], ang = Math.atan2(end[1] - pre[1], end[0] - pre[0]), hd = head(end, ang, lw, col);
+    const linea = []; for (const q of pts) { if (Math.hypot(q[0] - end[0], q[1] - end[1]) < hd.hl * .8) break; linea.push(q); } linea.push([hd.bx, hd.by]);
+    ar += '<polyline points="' + linea.map(P2).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="' + lw.toFixed(1) + '"/>' + hd.svg;
+    const L = bez(A, B, r, key in TL ? TL[key] : .5), o = OFF[key] || [0, 0], [lx, ly] = px(L[0] + o[0], L[1] + o[1]);
+    lb += etiqueta(lx, ly, R0(v) + '%', NOM[e.desde] + ' → ' + NOM[e.hasta] + ': ' + v.toFixed(1).replace('.', ',') + '% ' + (e.desde === 'INICIO' ? 'de las visitas' : lect) + ' · n = ' + e.n);
+  }
+  // bucles de autotransición (solo en la vista por clic)
+  if (modo === 'clic') for (const sn of Object.keys(LOOP)) {
+    const c = cel(sn, sn); if (!c || c.por_clic === null || c.por_clic < U || !POS[sn]) continue;
+    const [x, y] = POS[sn], [dx, side] = LOOP[sn], r = 30, lw = (.7 + c.por_clic / 11) * 1.85, col = PER.includes(sn) ? '#A0A0A0' : '#37474F';
+    const P = px(x + dx, y + side * H / 2), n = [0, -side], C = [P[0] + n[0] * r * .45, P[1] + n[1] * r * .45];
+    const a0 = Math.atan2(P[1] - C[1], P[0] - C[0]) + 0.55, a1 = a0 + 2 * Math.PI - 1.1, pts = [];
+    for (let i = 0; i <= 60; i++) { const a = a0 + (a1 - a0) * i / 60; pts.push([C[0] + r * Math.cos(a), C[1] + r * Math.sin(a)]); }
+    const end = pts[pts.length - 1], pre = pts[pts.length - 4], ang = Math.atan2(end[1] - pre[1], end[0] - pre[0]), hd = head(end, ang, lw * .8, col);
+    const linea = []; for (const q of pts) { if (Math.hypot(q[0] - end[0], q[1] - end[1]) < hd.hl * .8) break; linea.push(q); } linea.push([hd.bx, hd.by]);
+    ar += '<polyline points="' + linea.map(P2).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="' + (lw * .8).toFixed(1) + '"/>' + hd.svg;
+    const lx = C[0] + n[0] * (r + 26) + (dx > 0 ? 34 : -34), ly = C[1] + n[1] * (r + 10);
+    lb += etiqueta(lx, ly, R0(c.por_clic) + '%', NOM[sn] + ' → ' + NOM[sn] + ' (se queda): ' + c.por_clic.toFixed(1).replace('.', ',') + '% por clic · n = ' + c.n);
+  }
+  // cajas
+  for (const [sn, [x, y]] of Object.entries(POS)) {
+    let fc = '#EAF1FB', ec = '#2F5597', dash = '';
+    if (sn === 'INICIO') { fc = '#FFFFFF'; dash = ' stroke-dasharray="10 6"'; }
+    if (PER.includes(sn)) { fc = '#F3F3F3'; ec = '#7F7F7F'; }
+    const apag = sn === 'COMPRA' && cad === 'no_compradores';
+    if (sn === 'COMPRA') { fc = apag ? '#FAFAFA' : '#D9EAD3'; ec = apag ? '#BDBDBD' : '#38761D'; if (apag) dash = ' stroke-dasharray="10 6"'; }
+    const [bx, by] = px(x - W / 2, y + H / 2);
+    nd += '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + W * s + '" height="' + H * s + '" rx="16" fill="' + fc + '" stroke="' + ec + '" stroke-width="3"' + dash + '/>';
+    const T = (t, yy, sz, col, w) => { const [tx, ty] = px(x, yy); return '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="' + sz + '" fill="' + col + '"' + (w ? ' font-weight="700"' : '') + '>' + esc(t) + '</text>'; };
+    if (sn === 'INICIO') { nd += T('Inicio', y + .17, 24, '#222') + T('de la visita', y - .2, 24, '#222'); continue; }
+    if (sn === 'COMPRA') { nd += apag ? T('COMPRA', y + .33, 24, '#9E9E9E', 1) + T('no aplica: este grupo', y - .02, 19, '#9E9E9E') + T('no compra en julio', y - .33, 19, '#9E9E9E') : T('COMPRA', y, 25, '#222', 1); continue; }
+    const ab = cel(sn, 'ABANDONO'), abv = ab ? val(ab) : null;
+    nd += T(NOM[sn], y + .2, 24, '#222', 1) + T('abandona ' + (abv === null ? '—' : R0(abv) + '%'), y - .22, 21, '#B00000', 1);
+  }
+  let extra = '';
+  if (tit) {
+    const g = cad === 'compradores' ? 'Compradores' : 'No compradores';
+    const t1 = modo === 'clic' ? 'Mapa del customer journey – ' + g + ' (julio 2026, orden 1, con autotransiciones, por clic)' : 'Movimientos entre estados – ' + g + ' (julio 2026, sin autotransiciones, por salida)';
+    const t2 = modo === 'clic' ? 'Flechas y bucles: % de los hits en el estado de origen que van a ese destino en el siguiente hit (desde Inicio = % de visitas). Solo se dibujan valores de ' + U + '% o más. "abandona": % de los hits que terminan la visita.'
+      : 'Flechas: % de las salidas de cada estado que van a ese destino (sin contar las repeticiones del mismo estado). Solo flechas de ' + U + '% o más. "abandona": % de las salidas que terminan la visita.';
+    const [tx, ty] = px(11.75, 9.05), [cx, cy] = px(-1.5, -0.5);
+    extra = '<text x="' + tx + '" y="' + ty + '" text-anchor="middle" font-size="30" font-weight="700" fill="#222">' + esc(t1) + '</text><text x="' + cx + '" y="' + cy + '" font-size="18" fill="#555">' + esc(t2) + '</text>';
+  }
+  const vbw = Math.round((X1 - X0) * s), vbh = Math.round((Y1 - Y0) * s);
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vbw + ' ' + vbh + '" width="' + vbw + '" height="' + vbh + '" role="img" aria-label="Mapa del customer journey" font-family="Arial, Helvetica, sans-serif"><rect width="100%" height="100%" fill="#fff"/>' + extra + ar + nd + lb + '</svg>';
+};
+
 /* Anexo P4 – lee los JSON agregados de ./data/ y dibuja cada sección. Sin frameworks. */
 (function () {
   'use strict';
@@ -50,61 +135,20 @@
       '</table></div><p class="fuente">' + esc(D.uso_estados.descripcion) + ' Una visita pasa por varios estados, por eso los % de visitas no suman 100%.</p>';
   }
 
-  // ---------- 2. Mapas (SVG) ----------
+  // ---------- 2. Mapas (SVG; dibujo en svgMapaP4, al inicio del archivo) ----------
   function mapas() {
-    const cfg = D.diagrama_config;
-    $('#nota-umbral').innerHTML = 'Solo se dibujan las flechas de ' + cfg.umbral_flecha_por_salida + '% o más. <b>Las transiciones menores no se eliminan:</b> se consultan en la matriz completa.';
-    const dibujar = c => { $('#mapa').innerHTML = svgMapa(c); };
-    dibujar(tabs('mapa', dibujar));
-  }
-  function svgMapa(cad) {
-    const cfg = D.diagrama_config, POS = cfg.posiciones, U = cfg.umbral_flecha_por_salida;
-    const RAD = {'INICIO>PRODUCTO': .28, 'INICIO>LISTADO': .05, 'OTROS>CARRITO': -.30, 'OTROS>PRODUCTO': 0, 'PORTADA>CARRITO': -.20, 'CUENTA_SERVICIOS>PRODUCTO': 0, 'OTROS>BUSQUEDA': -.08, 'INICIO>PORTADA': 0, 'CHECKOUT>COMPRA': 0, 'CHECKOUT>PRODUCTO': .30};
-    const TL = {'INICIO>PRODUCTO': .38, 'PORTADA>CARRITO': .80, 'OTROS>CARRITO': .5, 'OTROS>PRODUCTO': .33, 'CUENTA_SERVICIOS>PRODUCTO': .42, 'OTROS>PORTADA': .45, 'CUENTA_SERVICIOS>PORTADA': .5, 'PORTADA>LISTADO': .42, 'AGREGAR_CARRO>CARRITO': .33, 'INICIO>LISTADO': .33};
-    const OFF = {'CARRITO>CHECKOUT': [0, -.42], 'CHECKOUT>CARRITO': [0, .42], 'CHECKOUT>COMPRA': [0, .38], 'INICIO>PORTADA': [0, .36]};
-    const PER = ['CUENTA_SERVICIOS', 'OTROS'], W = 2.8, H = 1.25, X0 = -1.6, X1 = 25.1, Y1 = 9.1, s = 90;
-    const px = (x, y) => [((x - X0) * s), ((Y1 - y) * s)];
-    const inBox = (p, q) => Math.abs(p[0] - q[0]) <= W / 2 + .05 && Math.abs(p[1] - q[1]) <= H / 2 + .05;
-    const bez = (a, b, r, t) => { const cx = (a[0] + b[0]) / 2 + r * (b[1] - a[1]), cy = (a[1] + b[1]) / 2 - r * (b[0] - a[0]);
-      return [(1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * cx + t * t * b[0], (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * cy + t * t * b[1]]; };
-    const M = D.matrices.cadenas[cad];
-    const sal = o => M.filter(x => x.desde === o && x.hasta !== o).reduce((a, b) => a + b.n, 0), tot = o => M.filter(x => x.desde === o).reduce((a, b) => a + b.n, 0);
-    const exS = x => x.por_salida;
-    // redondeo igual al de las figuras del informe (al par más cercano sobre el valor con 1 decimal del JSON)
-    const R0 = v => { const f = Math.floor(v), d = Math.round((v - f) * 10); return d === 5 ? (f % 2 === 0 ? f : f + 1) : Math.round(v); };
-    const edges = M.filter(x => x.desde !== x.hasta && x.hasta !== 'ABANDONO' && x.por_salida !== null && x.por_salida >= U && POS[x.desde] && POS[x.hasta]);
-    let ar = '', lb = '', nd = '';
-    for (const e of edges) {
-      const key = e.desde + '>' + e.hasta, r = key in RAD ? RAD[key] : .12, A = POS[e.desde], B = POS[e.hasta];
-      const col = e.hasta === 'COMPRA' ? '#2E7D32' : ((PER.includes(e.desde) || PER.includes(e.hasta)) ? '#A0A0A0' : '#37474F');
-      const lw = (.7 + e.por_salida / 11) * 1.85, pts = [];
-      for (let i = 0; i <= 300; i++) { const p = bez(A, B, r, i / 300); if (!inBox(p, A) && !inBox(p, B)) pts.push(px(p[0], p[1])); }
-      if (pts.length < 2) continue;
-      const end = pts[pts.length - 1], pre = pts[Math.max(0, pts.length - 6)], ang = Math.atan2(end[1] - pre[1], end[0] - pre[0]);
-      const hl = 13 + lw * 1.7, hw = 6.5 + lw * .85, bx = end[0] - hl * Math.cos(ang), by = end[1] - hl * Math.sin(ang);
-      const linea = []; for (const q of pts) { if (Math.hypot(q[0] - end[0], q[1] - end[1]) < hl * .8) break; linea.push(q); } linea.push([bx, by]);
-      ar += '<polyline points="' + linea.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="' + lw.toFixed(1) + '"/>';
-      ar += '<polygon points="' + [end, [bx + hw * Math.sin(ang), by - hw * Math.cos(ang)], [bx - hw * Math.sin(ang), by + hw * Math.cos(ang)]].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ') + '" fill="' + col + '"/>';
-      const L = bez(A, B, r, key in TL ? TL[key] : .5), o = OFF[key] || [0, 0], [lx, ly] = px(L[0] + o[0], L[1] + o[1]), t = R0(exS(e)) + '%';
-      const tw = t.length * 13.5 + 12;
-      lb += '<g><title>' + esc(nom(e.desde) + ' → ' + nom(e.hasta) + ': ' + pct(e.por_salida) + ' de las salidas' + (e.desde === 'INICIO' ? ' (= % de visitas)' : '') + ' · n = ' + miles(e.n)) + '</title><rect x="' + (lx - tw / 2) + '" y="' + (ly - 16) + '" width="' + tw + '" height="32" rx="7" fill="#fff" fill-opacity=".95"/><text x="' + lx + '" y="' + (ly + 8) + '" text-anchor="middle" font-size="24">' + t + '</text></g>';
-    }
-    for (const [sn, [x, y]] of Object.entries(POS)) {
-      let fc = '#EAF1FB', ec = '#2F5597', dash = '';
-      if (sn === 'INICIO') { fc = '#FFFFFF'; dash = ' stroke-dasharray="10 6"'; }
-      if (PER.includes(sn)) { fc = '#F3F3F3'; ec = '#7F7F7F'; }
-      const apag = sn === 'COMPRA' && cad === 'no_compradores';
-      if (sn === 'COMPRA') { fc = apag ? '#FAFAFA' : '#D9EAD3'; ec = apag ? '#BDBDBD' : '#38761D'; if (apag) dash = ' stroke-dasharray="10 6"'; }
-      const [bx, by] = px(x - W / 2, y + H / 2);
-      nd += '<rect x="' + bx + '" y="' + by + '" width="' + W * s + '" height="' + H * s + '" rx="16" fill="' + fc + '" stroke="' + ec + '" stroke-width="3"' + dash + '/>';
-      const T = (t, yy, sz, col, w) => { const [tx, ty] = px(x, yy); return '<text x="' + tx + '" y="' + ty + '" text-anchor="middle" dominant-baseline="middle" font-size="' + sz + '" fill="' + col + '"' + (w ? ' font-weight="700"' : '') + '>' + esc(t) + '</text>'; };
-      if (sn === 'INICIO') { nd += T('Inicio', y + .17, 24, '#222') + T('de la visita', y - .2, 24, '#222'); continue; }
-      if (sn === 'COMPRA') { nd += apag ? T('COMPRA', y + .33, 24, '#9E9E9E', 1) + T('no aplica: este grupo', y - .02, 19, '#9E9E9E') + T('no compra en julio', y - .33, 19, '#9E9E9E') : T('COMPRA', y, 25, '#222', 1); continue; }
-      const q = celda(cad, sn, sn).por_clic, ab = exS(celda(cad, sn, 'ABANDONO'));
-      nd += T(nom(sn), y + .33, 24, '#222', 1) + T('se queda ' + (q < 1 ? '<1%' : R0(q) + '%'), y - .02, 21, '#555') + T('abandona ' + R0(ab) + '%', y - .34, 21, '#B00000', 1);
-    }
-    const vbw = Math.round((X1 - X0) * s), vbh = Math.round((Y1 + .2) * s);
-    return '<svg viewBox="0 0 ' + vbw + ' ' + vbh + '" role="img" aria-label="Mapa del customer journey de ' + GRUPO[cad] + '" font-family="system-ui, Segoe UI, Arial, sans-serif"><rect width="100%" height="100%" fill="#fff"/>' + ar + nd + lb + '</svg>';
+    const cfg = D.diagrama_config; let g = 'compradores', m = 'clic';
+    const NOTAS = {
+      clic: ['<b>Vista principal: matriz con autotransiciones (por clic).</b> Cada flecha es el % de los hits en el estado de origen cuyo siguiente hit va a ese destino. Los <b>bucles</b> son las autotransiciones (quedarse en el mismo estado). Las flechas que parten de <b>Inicio</b> son % de visitas.', 'Dentro de cada estado, <b>abandona</b> es el % de los hits que terminan la visita (por clic). Cada fila suma 100%, incluido quedarse y abandonar.'],
+      salida: ['<b>Vista complementaria: sin autotransiciones (por salida).</b> Cada flecha es el % de las salidas del estado de origen que van a ese destino, sin contar las repeticiones del mismo estado. Es la lectura que se usa para analizar las fugas (P5).', 'Dentro de cada estado, <b>abandona</b> es el % de las salidas que terminan la visita (por salida).']};
+    const dibujar = () => {
+      const u = m === 'clic' ? cfg.umbral_flecha_por_clic : cfg.umbral_flecha_por_salida;
+      $('#notas-mapa').innerHTML = NOTAS[m].map(t => '<li>' + t + '</li>').join('') + '<li>Solo se dibujan valores de ' + u + '% o más. <b>Las transiciones menores no se eliminan:</b> se consultan en la matriz completa.</li>';
+      $('#mapa').innerHTML = svgMapaP4(g, m, D.matrices.cadenas[g], cfg.posiciones, {umbralClic: cfg.umbral_flecha_por_clic, umbralSalida: cfg.umbral_flecha_por_salida});
+    };
+    g = tabs('mapa', v => { g = v; dibujar(); });
+    m = tabs('mapa-modo', v => { m = v; dibujar(); });
+    dibujar();
   }
 
   // ---------- 3. Matrices ----------
