@@ -122,8 +122,8 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
     const K = [
       ['Clics en Producto', c => uso(c, 'pct_clics'), '% de clics del grupo · uso_estados.json'],
       ['Visitas que pasan por Producto', c => uso(c, 'pct_visitas'), '% de visitas del grupo · uso_estados.json'],
-      ['Abandono al salir de Producto', c => clave(c, 'PRODUCTO', 'ABANDONO').julio, 'por salida · transiciones_clave.json'],
-      ['Salidas de Producto hacia el carro (Carrito + Agregar al carro)', carro, 'por salida · transiciones_clave.json']];
+      ['Clics en Producto que terminan la visita', c => clave(c, 'PRODUCTO', 'ABANDONO').julio, 'por clic · transiciones_clave.json'],
+      ['Clics en Producto que van al carro (Carrito + Agregar al carro)', carro, 'por clic · transiciones_clave.json']];
     $('#kpis').innerHTML = K.map(([t, f, fu]) => '<div class="kpi"><div class="t">' + esc(t) + '</div><div class="v"><div>' + pct(f('compradores')) + '<small>Compradores</small></div><div class="nc">' + pct(f('no_compradores')) + '<small>No compradores</small></div></div><div class="f">' + esc(fu) + '</div></div>').join('');
     const m = D.meta;
     $('#definiciones').innerHTML = '<p>' + esc(m.base) + '</p><ul class="notas">' + Object.entries(m.definiciones).map(([k, v]) => '<li><b>' + esc(k.replace(/_/g, ' ')) + ':</b> ' + esc(v) + '</li>').join('') + '</ul><ul class="notas">' + m.advertencias.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>';
@@ -194,14 +194,15 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
 
   // ---------- 4. Transiciones clave ----------
   function transiciones() {
-    const CORTA = ['INICIO>PORTADA', 'INICIO>PRODUCTO', 'PRODUCTO>ABANDONO', 'PRODUCTO>CARRITO', 'CARRITO>CHECKOUT', 'CHECKOUT>COMPRA'];
+    const CORTA = ['INICIO>PORTADA', 'INICIO>PRODUCTO', 'PRODUCTO>PRODUCTO', 'PRODUCTO>ABANDONO', 'PRODUCTO>CARRITO', 'CARRITO>CHECKOUT', 'CHECKOUT>COMPRA'];
     let g, todas = false;
     const draw = () => {
       let F = D.transiciones_clave.filas.filter(x => x.cadena === g);
       if (!todas) F = F.filter(x => CORTA.includes(x.desde + '>' + x.hasta));
-      $('#tabla-trans').innerHTML = '<thead><tr><th>Transición</th><th>Medida</th><th>Julio [IC 95%]</th><th>S1–S4 (mín–máx)</th><th>S5 (29–31)</th><th>Peso igual</th></tr></thead><tbody>' +
+      const sal = x => x.por_salida === null || x.por_salida === undefined ? '—' : pct(x.por_salida);
+      $('#tabla-trans').innerHTML = '<thead><tr><th>Transición</th><th>Julio por clic [IC 95%]</th><th>S1–S4 (mín–máx)</th><th>S5 (29–31)</th><th>Peso igual</th><th class="comp">Por salida (complemento)</th></tr></thead><tbody>' +
         F.map(x => { const fuera = x.julio < x.s1_s4[0] || x.julio > x.s1_s4[1];
-          return '<tr><td>' + nom(x.desde) + ' → ' + (x.desde === x.hasta ? 'se queda' : nom(x.hasta)) + '</td><td>' + (x.desde === x.hasta ? 'por clic' : 'por salida') + '</td><td>' + pct(x.julio) + ' [' + num(x.ic[0]) + '–' + num(x.ic[1]) + ']' + (fuera ? ' *' : '') + '</td><td>' + num(x.s1_s4[0]) + '–' + num(x.s1_s4[1]) + '</td><td>' + pct(x.s5) + '</td><td>' + pct(x.peso_igual) + '</td></tr>'; }).join('') +
+          return '<tr><td>' + nom(x.desde) + ' → ' + (x.desde === x.hasta ? 'se queda' : nom(x.hasta)) + (x.desde === 'INICIO' ? ' <small>(% de visitas)</small>' : '') + '</td><td>' + pct(x.julio) + ' [' + num(x.ic[0]) + '–' + num(x.ic[1]) + ']' + (fuera ? ' *' : '') + '</td><td>' + num(x.s1_s4[0]) + '–' + num(x.s1_s4[1]) + '</td><td>' + pct(x.s5) + '</td><td>' + pct(x.peso_igual) + '</td><td class="comp">' + (x.desde === 'INICIO' ? 'igual' : (x.desde === x.hasta ? 'no aplica' : sal(x))) + '</td></tr>'; }).join('') +
         '</tbody>' + (F.some(x => x.julio < x.s1_s4[0] || x.julio > x.s1_s4[1]) ? '<caption style="caption-side:bottom;text-align:left;font-size:.8rem;color:#5b6472;padding-top:6px">* El valor de julio queda fuera del rango S1–S4 porque incluye S5.</caption>' : '');
       $('#ver-todas').textContent = todas ? 'Ver solo las principales' : 'Ver todas las transiciones';
     };
