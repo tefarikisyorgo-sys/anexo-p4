@@ -98,7 +98,7 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
   let D = {};
 
   // ---------- carga ----------
-  Promise.all(ARCH.map(a => fetch('./data/' + a + '.json').then(r => { if (!r.ok) throw new Error(a + '.json (' + r.status + ')'); return r.json(); })))
+  Promise.all(ARCH.map(a => fetch('./data/' + a + '.json', {cache: 'no-cache'}).then(r => { if (!r.ok) throw new Error(a + '.json (' + r.status + ')'); return r.json(); })))
     .then(res => { ARCH.forEach((a, i) => D[a] = res[i]); $('#estado-carga').remove(); iniciar(); })
     .catch(e => { const el = $('#estado-carga'); el.className = 'aviso error'; el.textContent = 'No se pudieron cargar los datos: ' + e.message + '. Si abres el archivo directamente desde el computador, usa un servidor local o la versión publicada en GitHub Pages.'; });
 
