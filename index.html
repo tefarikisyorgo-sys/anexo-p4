@@ -20,6 +20,7 @@
       <a href="#visitas">Visitas y rutas</a>
       <a href="#procedencia">Procedencia</a>
       <a href="#validaciones">Validaciones</a>
+      <a href="#autotransiciones">Autotransiciones</a>
       <a href="#glosario">Glosario</a>
     </nav>
   </div>
@@ -88,7 +89,7 @@
     <ul class="notas">
       <li><b>Lectura principal: por clic</b> (matriz con autotransiciones): de cada 100 clics en el estado de origen, cuántos van a ese destino. Desde Inicio es % de visitas.</li>
       <li><b>S1–S4</b> = mínimo y máximo de las semanas normales. <b>S5</b> (29–31 de julio, incluye los días 30 y 31) va aparte. El valor de julio incluye S5, por eso puede quedar fuera del rango S1–S4 (*).</li>
-      <li><b>Peso igual:</b> cada cliente pesa lo mismo, sin importar cuánto navega (M.4).</li>
+      <li><b>Ajuste por actividad (M.4):</b> los clientes se dividen en cuatro grupos según cuántos clics hacen; la matriz se calcula dentro de cada grupo y cada grupo pesa según su número de clientes. Así un cliente de 1 clic no pesa lo mismo que uno muy activo, pero los muy activos tampoco dominan.</li>
       <li><b>Por salida (complemento):</b> mismo destino, pero sin contar las veces que el cliente se queda en el estado. Sirve para analizar las fugas (P5). No aplica a «se queda».</li>
       <li>Definiciones de cada medida en el <a href="#glosario">glosario</a>.</li>
     </ul>
@@ -149,6 +150,24 @@
     <p class="fuente">Fuente: validaciones.json (informe, sección M) y dias.json (p4_dias, p4_evento).</p>
   </section>
 
+  <section id="autotransiciones">
+    <h2>Autotransiciones: cuánto se queda el cliente en cada estado y cuánto pesa</h2>
+    <ul class="notas">
+      <li><b>Se queda</b> = % de los clics de ese estado cuyo siguiente clic sigue en el mismo estado (por clic). <b>Peso</b> = qué parte de todos los pasos del grupo son repeticiones de ese estado.</li>
+      <li>Un estado puede quedarse mucho y pesar poco (Otros): lo que pesa en la cadena es Producto. Filas ordenadas por peso en compradores. C = compradores; NC = no compradores.</li>
+    </ul>
+    <div class="scroll"><table class="tabla glos"><thead><tr><th>Estado</th><th>Se queda C / NC (%)</th><th>Peso C / NC</th><th>Qué tipo de repetición es</th><th>Posible explicación</th></tr></thead><tbody>
+      <tr><td>Producto</td><td>49,2 / 42,0</td><td>21,1% / 18,0%</td><td>Compradores: misma ficha registrada otra vez 55%, pasa a otra ficha 37%, id no válido 8%. No compradores: 38%, 50% y 12%.</td><td>La misma ficha queda registrada más de una vez en la app (cambia solo el nombre de la página: con la ruta de categoría, «pdp» o «pdp_action»), la mitad de las veces en menos de 8 segundos; solo 4% marca un clic en talla o color. Pasar a otra ficha es comparar productos, en parte desde carruseles de recomendados.</td></tr>
+      <tr><td>Búsqueda</td><td>16,4 / 19,2</td><td>1,9% / 2,4%</td><td>Cambia el texto buscado: 99,7%.</td><td>Afina la búsqueda (por ejemplo, de «zapatillas» a «zapatillas running»).</td></tr>
+      <tr><td>Cuenta y servicios</td><td>44,8 / 46,4</td><td>1,7% / 0,5%</td><td>Otra página de su cuenta: 76%; la misma página: 24%.</td><td>Recorre su cuenta (pedidos, listas, notificaciones). El estado agrupa muchas pantallas.</td></tr>
+      <tr><td>Checkout</td><td>37,1 / 22,3</td><td>1,4% / 0,1%</td><td>Avanza a otro paso del pago: 98%.</td><td>Pasos normales del pago (despacho, pago, confirmación).</td></tr>
+      <tr><td>Listado</td><td>11,6 / 12,0</td><td>0,7% / 1,1%</td><td>Pasa a otro listado: 98,5%.</td><td>Cambia de categoría o aplica un filtro.</td></tr>
+      <tr><td>Otros</td><td>47,7 / 47,9</td><td>0,5% / 0,7%</td><td>Registro técnico en el mismo segundo: 72%.</td><td>Eventos técnicos de la app (por ejemplo, abrir un link de marketing) que quedan registrados dos veces. Se queda mucho, pero pesa muy poco.</td></tr>
+      <tr><td>Agregar al carro, Carrito y Portada</td><td>4,3 o menos / 3,5 o menos</td><td>0,3% / 0,3% (juntos)</td><td>—</td><td>Casi no se repiten.</td></tr>
+    </tbody></table></div>
+    <p class="fuente">En total, las autotransiciones son el 27,5% de los pasos en compradores y el 22,9% en no compradores; Producto concentra el 77% y el 79% de ellas. Una pasada por Producto dura en promedio 2,0 clics seguidos en compradores y 1,7 en no compradores (68% y 72% de las pasadas tiene un solo clic; 11% y 8% tiene 4 o más). «Id no válido» = product_id vacío o con texto en vez de código. Fuente: df_markov, cálculo propio.</p>
+  </section>
+
   <section id="glosario">
     <h2>Glosario: cómo leer cada número</h2>
     <p>En la Pregunta 4 la lectura principal es <b>por clic</b> (matriz con autotransiciones). Las demás medidas son complementos y siempre se indica cuál se usa. Ejemplos: compradores, julio 2026.</p>
@@ -165,7 +184,8 @@
       <tr><td>Rebote</td><td>Visita de un solo clic.</td><td>Visitas del grupo</td><td>23,6% de las visitas.</td></tr>
       <tr><td>IC 95%</td><td>Rango del valor con 95% de confianza (bootstrap por cliente, 500 réplicas).</td><td>—</td><td>Producto se queda: 49,2 [48,3–50,2].</td></tr>
       <tr><td>S1–S4 y S5</td><td>El mismo valor calculado por semana: mínimo y máximo de las semanas normales y la semana final (29–31) aparte.</td><td>Igual que la medida</td><td>Producto se queda: 47,7–49,7; S5: 52,7.</td></tr>
-      <tr><td>Peso igual</td><td>El mismo cálculo, pero cada cliente pesa lo mismo, sin importar cuántos clics hace (M.4).</td><td>Clics ponderados por cliente</td><td>Producto se queda: 39,7%.</td></tr>
+      <tr><td>Ajuste por actividad</td><td>El mismo cálculo, promediando 4 grupos de clientes según cuántos clics hacen (cuartiles); cada grupo pesa según su número de clientes (muestreo estratificado, M.4). Reemplaza al «peso igual».</td><td>Clientes de cada grupo</td><td>Producto se queda: 38,8%.</td></tr>
+      <tr><td>Peso de una autotransición</td><td>Qué parte de todos los pasos del grupo son repeticiones de ese estado. Distinto de «se queda».</td><td>Todos los pasos del grupo</td><td>Producto: 21,1% de los pasos.</td></tr>
       <tr><td>Orden 1</td><td>El siguiente clic depende solo del estado actual, no de los anteriores.</td><td>—</td><td>—</td></tr>
     </tbody></table></div>
   </section>
@@ -176,6 +196,6 @@
   </section>
 </main>
 <footer class="pie"><div class="wrap">Tesis de magíster · Desafío 2: Customer journey Falabella · Solo datos agregados.</div></footer>
-<script src="./assets/js/app.js?v=2026110601"></script>
+<script src="./assets/js/app.js?v=2026111001"></script>
 </body>
 </html>
