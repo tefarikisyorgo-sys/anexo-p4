@@ -240,7 +240,7 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
   // ---------- 6. Procedencia ----------
   function procedencia() {
     const Q = D.procedencia_producto;
-    $('#advertencia-proc').innerHTML = '<b>Ojo:</b> ' + esc(Q.advertencia);
+    $('#advertencia-proc').innerHTML = '<p><b>Qué es esta tabla.</b> Un conteo directo de los datos, sin modelo detrás. Si un cliente ve varias fichas seguidas (por ejemplo, Búsqueda → Producto → Producto → Producto → Búsqueda), esas fichas se juntan en una sola <i>pasada</i> por Producto y se anotan dos cosas: desde dónde llegó (Búsqueda) y hacia dónde fue al salir (Búsqueda). Luego se cuenta: de todas las pasadas que llegaron desde Búsqueda, cuántas volvieron a Búsqueda, cuántas fueron al carro y cuántas terminaron la visita; y lo mismo para cada procedencia.</p><p><b>Para qué sirve.</b> Muestra que el lugar desde donde llega el cliente cambia lo que hace después: no es lo mismo entrar directo a una ficha que llegar desde Búsqueda. Es un complemento de la matriz principal (no es el modelo de orden 2).</p>';
     const PRIM = ['INICIO', 'BUSQUEDA', 'LISTADO', 'CARRITO'], COLS = ['ABANDONO', 'BUSQUEDA', 'LISTADO', 'CARRITO', 'AGREGAR_CARRO', 'PORTADA', 'OTRO'];
     const ETQ = {ABANDONO: 'Abandona', BUSQUEDA: 'Vuelve a Búsqueda', LISTADO: 'Vuelve a Listado', CARRITO: 'Carrito', AGREGAR_CARRO: 'Agregar al carro', PORTADA: 'Portada', OTRO: 'Otro estado'};
     const proc = p => p === 'INICIO' ? 'Entró directo (Inicio)' : nom(p);
