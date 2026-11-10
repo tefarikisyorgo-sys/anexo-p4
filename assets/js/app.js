@@ -200,9 +200,9 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
       let F = D.transiciones_clave.filas.filter(x => x.cadena === g);
       if (!todas) F = F.filter(x => CORTA.includes(x.desde + '>' + x.hasta));
       const sal = x => x.por_salida === null || x.por_salida === undefined ? '—' : pct(x.por_salida);
-      $('#tabla-trans').innerHTML = '<thead><tr><th>Transición</th><th>Julio por clic [IC 95%]</th><th>S1–S4 (mín–máx)</th><th>S5 (29–31)</th><th>Peso igual</th><th class="comp">Por salida (complemento)</th></tr></thead><tbody>' +
+      $('#tabla-trans').innerHTML = '<thead><tr><th>Transición</th><th>Julio por clic [IC 95%]</th><th>S1–S4 (mín–máx)</th><th>S5 (29–31)</th><th>Ajuste por actividad</th><th class="comp">Por salida (complemento)</th></tr></thead><tbody>' +
         F.map(x => { const fuera = x.julio < x.s1_s4[0] || x.julio > x.s1_s4[1];
-          return '<tr><td>' + nom(x.desde) + ' → ' + (x.desde === x.hasta ? 'se queda' : nom(x.hasta)) + (x.desde === 'INICIO' ? ' <small>(% de visitas)</small>' : '') + '</td><td>' + pct(x.julio) + ' [' + num(x.ic[0]) + '–' + num(x.ic[1]) + ']' + (fuera ? ' *' : '') + '</td><td>' + num(x.s1_s4[0]) + '–' + num(x.s1_s4[1]) + '</td><td>' + pct(x.s5) + '</td><td>' + pct(x.peso_igual) + '</td><td class="comp">' + (x.desde === 'INICIO' ? 'igual' : (x.desde === x.hasta ? 'no aplica' : sal(x))) + '</td></tr>'; }).join('') +
+          return '<tr><td>' + nom(x.desde) + ' → ' + (x.desde === x.hasta ? 'se queda' : nom(x.hasta)) + (x.desde === 'INICIO' ? ' <small>(% de visitas)</small>' : '') + '</td><td>' + pct(x.julio) + ' [' + num(x.ic[0]) + '–' + num(x.ic[1]) + ']' + (fuera ? ' *' : '') + '</td><td>' + num(x.s1_s4[0]) + '–' + num(x.s1_s4[1]) + '</td><td>' + pct(x.s5) + '</td><td>' + pct(x.ajuste_actividad) + '</td><td class="comp">' + (x.desde === 'INICIO' ? 'igual' : (x.desde === x.hasta ? 'no aplica' : sal(x))) + '</td></tr>'; }).join('') +
         '</tbody>' + (F.some(x => x.julio < x.s1_s4[0] || x.julio > x.s1_s4[1]) ? '<caption style="caption-side:bottom;text-align:left;font-size:.8rem;color:#5b6472;padding-top:6px">* El valor de julio queda fuera del rango S1–S4 porque incluye S5.</caption>' : '');
       $('#ver-todas').textContent = todas ? 'Ver solo las principales' : 'Ver todas las transiciones';
     };
@@ -260,7 +260,7 @@ window.svgMapaP4 = function (cad, modo, M, POS, opt) {
       'M.1': 'Las probabilidades de un paso son las observadas; lo que encadena muchos pasos (compra final, llegada) se usa con cautela. La tabla de procedencia de Producto es un complemento, no el orden 2 de la cadena base.',
       'M.2': 'Estabilidad aproximada, no homogeneidad exacta: basta una matriz del mes. S1–S4 son las semanas normales; S5 (29–31) va aparte.',
       'M.3': 'Dos mapas (compradores y no compradores). App y web juntas en la matriz principal; Agregar al carro y login de Checkout solo se registran en la app.',
-      'M.4': 'Se muestra la sensibilidad con peso igual por cliente en las transiciones clave.',
+      'M.4': 'Se muestra la sensibilidad con ajuste por nivel de actividad (estratificado por cuartiles de clientes) en las transiciones clave.',
       'M.5': 'Intervalos del 95% por bootstrap por cliente (500 réplicas). Filas chicas de no compradores (Checkout, Cuenta y servicios, Otros) son imprecisas.',
       'M.6': 'La matriz mezcla visitas antes y después de la primera compra y distintas puertas de entrada; se usa como complemento para interpretar.'};
     const T = (cab, filas) => '<div class="scroll"><table class="tabla"><tr>' + cab.map(c => '<th>' + c + '</th>').join('') + '</tr>' + filas.map(f => '<tr>' + f.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</table></div>';
